@@ -65,7 +65,6 @@ public:
     //--------------------------------------------------------------------------|
 
     bool operator ==(const BigInt& bigInt) const;
-    bool operator ==(const string& bigInt) const;
     bool operator <(const BigInt& bigInt) const;
     bool operator <=(const BigInt& bigInt) const;
     bool operator >(const BigInt& bigInt) const;
@@ -73,22 +72,17 @@ public:
 
     //---------------------------------------------------------------------------
 
-    ~BigInt();
-
     //--------------------------------------------------------------------------|
     //|                                                                         |
     //|                                  METHODS                                |
     //|                                                                         |
     //--------------------------------------------------------------------------|
 
-    BigInt& toFixed(const size_t& digits);
-
     BigInt negative();
     BigInt positive();
 
-    void display();
-
-    string toString();
+    string toString() const;
+    bool isZero() const;
 
     //---------------------------------------------------------------------------
 };

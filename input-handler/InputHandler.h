@@ -14,6 +14,13 @@ protected:
     };
     InputHandler() {};
 public:
+
+    //--------------------------------------------------------------------------|
+    //|                                                                         |
+    //|                           SETUP BASE HANDLER                            |
+    //|                                                                         |
+    //--------------------------------------------------------------------------|
+
     //Prevent clone InputHandler
     InputHandler(InputHandler& other) = delete;
     void operator = (const InputHandler& ) = delete;
@@ -25,10 +32,22 @@ public:
         delete _instance;
     }
 
-    void removeAllZeroHead(string& inputStr);
-    bool validateNumber(const string& inputStr);
+    //---------------------------------------------------------------------------
 
-    static void fixedBits(string& inputStr, const char& mode);
+    //--------------------------------------------------------------------------|
+    //|                                                                         |
+    //|                             PUBLIC METHODS                              |
+    //|                                                                         |
+    //--------------------------------------------------------------------------|
+
+    bool inputNumber(string& str, string& base, string& fixed);
+
+    void removeAllZeroHead(string& inputStr);
+    bool validateNumber(const string& inputStr, const int& base);
+
+    static void fixedBits(string& inputStr, const int& mode);
+
+
 };
 
 #endif

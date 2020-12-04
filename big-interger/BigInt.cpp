@@ -1,7 +1,8 @@
 #include "BigInt.h"
 #include <cstring>
-#include <stdlib.h>
+#include <algorithm>
 
+//Global methods
 template<class T>
 void _swap(T& a, T& b) {
     T temp = a;
@@ -9,19 +10,74 @@ void _swap(T& a, T& b) {
     b = temp;
 }
 
-void reverse(string& str) 
-{ 
+void reverse(string& str) { 
     int n = str.length(); 
     for (int i = 0; i < n / 2; i++) 
         _swap(str[i], str[n - i - 1]); 
 } 
 
 void removeAllZero(string& str) {
+    if (str[0] != '0')
+        return;
     size_t pos = str.find_first_not_of("0");
     str.erase(0, pos);
     if (str == "")
         str = "0";
 }
+
+void fixedLength(string& left, string& right) {
+    size_t n = left.length();
+    size_t m = right.length();
+    if (n < m) {
+        string fix(m - n, '0');
+        left = fix + left;
+    }
+    else {
+        string fix(n - m, '0');
+        right = fix + right;
+    }
+}
+
+//--------------------------------------------------------------------------|
+//|                                                                         |
+//|                               STRING METHODS                            |
+//|                                                                         |
+//--------------------------------------------------------------------------|
+
+//Arithmetic operators 
+bool operator <(const string& left, const string& right) {
+    size_t n, m;
+    n = left.length();
+    m = right.length();
+
+    if (n != m) 
+        return n < m;
+    for (size_t i = 0; i < n; ++i) {
+        if (left[i] != right[i]) 
+            return left[i] < right[i];
+    }
+    return false;
+}
+
+bool operator <=(const string& left, const string& right) {
+    return (left == right || left < right);
+}
+
+bool operator >(const string& left, const string& right) {
+    return !(left <= right);
+}
+
+bool operator >=(const string& left, const string& right) {
+    return !(left < right);
+}
+
+//--------------------------------------------------------------------------
+
+//--------------------------------------------------------------------------|
+//|                                                                         |
+//|                               CONSTRUCTORS                              |
+//|                                                                         |
+//--------------------------------------------------------------------------|
 
 BigInt::BigInt() {
     this->_myVal = "";
@@ -35,9 +91,15 @@ BigInt::BigInt(const BigInt& bigInt) {
 
 BigInt::BigInt(const string& str) {
     this->_sign = (str[0] == '-') ? -1 : 1;
-    this->_myVal = (_sign == -1) ? str.substr(1, str.length() - 1) : str;
+    this->_myVal = (_sign == 1) ? str : str.substr(1, str.length() - 1);
     removeAllZero(this->_myVal);
 }
+
+//--------------------------------------------------------------------------|
+//|                                                                         |
+//|                               ASSIGNMENTS                               |
+//|                                                                         |
+//--------------------------------------------------------------------------|
 
 BigInt& BigInt::operator =(const BigInt& bigInt) {
     this->_myVal = bigInt._myVal;
@@ -47,16 +109,22 @@ BigInt& BigInt::operator =(const BigInt& bigInt) {
 
 BigInt& BigInt::operator =(const string& str) {
     this->_sign = (str[0] == '-') ? -1 : 1;
-    this->_myVal = (_sign == -1) ? str.substr(1, str.length() - 1) : str;
+    this->_myVal = (_sign == 1) ? str : str.substr(1, str.length() - 1);
     removeAllZero(this->_myVal);
     return *this;
 }
 
+//--------------------------------------------------------------------------|
+//|                                                                         |
+//|                          MATHEMATICS OPERATORS                          |
+//|                                                                         |
+//--------------------------------------------------------------------------|
+
 string BigInt::operator +(const BigInt& bigInt) {
-    if (bigInt == "0") 
+    if (bigInt.isZero()) 
         return this->toString();
-    else if (*this == "0")
-        return BigInt(bigInt).toString(); 
+    if (this->isZero())
+        return bigInt.toString(); 
 
     BigInt cloneThis = *this;
     BigInt cloneIn = bigInt;
@@ -68,37 +136,49 @@ string BigInt::operator +(const BigInt& bigInt) {
         return cloneThis - cloneIn.negative();
     }
     
+    //Fixed equal length
+    fixedLength(cloneThis._myVal, cloneIn._myVal);
+
+    int carry = 0;
+    for (int i = cloneThis._myVal.length() - 1; i > -1; i--) {
+        int sum = (int)cloneThis._myVal[i] + (int)cloneIn._myVal[i] - 96 + carry;
+        carry = sum / 10;
+        re._myVal = to_string(sum % 10) + re._myVal;
+    }
+    if (carry > 0)
+        re._myVal = to_string(carry) + re._myVal;
     re._sign = cloneThis._sign;
 
-    //Reverse 
-    reverse(cloneThis._myVal);
-    reverse(cloneIn._myVal);
-
-    int carry = 0, i = 0, j = 0;
-
-    while (i < cloneThis._myVal.length() && j < cloneIn._myVal.length()) {
-        int sum = (int)cloneThis._myVal[i++] + (int)cloneIn._myVal[j++] - 96 + carry;
-        carry = sum / 10;
-        re._myVal += to_string(sum % 10);
-    }
-
-    while (i < cloneThis._myVal.length()) {
-        int sum = (int)cloneThis._myVal[i++] - 48 + carry;
-        carry = sum / 10;
-        re._myVal += to_string(sum % 10);
-    }
-    while (j < cloneIn._myVal.length()) {
-        int sum = (int)cloneIn._myVal[j++] - 48 + carry;
-        carry = sum / 10;
-        re._myVal += to_string(sum % 10);
-    }
-
-    re._myVal += to_string(carry);
-
-    reverse(re._myVal);
-    removeAllZero(re._myVal);
-
     return re.toString();
+}
+
+//Operator string - string
+string operator -(const string& _left, const string& _right) {
+    if (_left == "0")
+        return _right;
+    if (_right == "0")
+        return _left;
+    
+    string left, right;
+    left = _left;
+    right = _right;
+    string re(_left.length(), '0');
+    
+    fixedLength(left, right);
+
+    int borrow = 0, diff = 0;
+    for (int i = left.length() - 1; i > -1; --i) {
+        diff = (int)left[i]- borrow - (int)right[i];
+        if (diff < 0) {
+            diff += 10;
+            borrow = 1;
+        }
+        else 
+            borrow = 0;
+        re[i] = char(diff + 48);
+    }
+    removeAllZero(re);
+    return re;
 }
 
 string BigInt::operator +(const string& bigInt) {
@@ -108,54 +188,23 @@ string BigInt::operator +(const string& bigInt) {
 }
 
 string BigInt::operator -(const BigInt& bigInt) {
-    BigInt cloneThis(*this);
-    BigInt cloneIn(bigInt);
-
-    if (cloneThis == cloneIn)
+    if (*this == bigInt)
         return "0";
+    string left, right;
+    left = this->_myVal;
+    right = bigInt._myVal;
 
-    if (cloneThis._sign != cloneIn._sign) 
-        return cloneThis + cloneIn.negative();
-    
-    if (cloneThis._sign == -1) 
-        return (cloneThis > cloneIn) ? (cloneIn.positive() - cloneThis.positive()) : (cloneIn.positive() + cloneThis);
-    
-    BigInt re;
-    if (cloneThis < cloneIn) {
-        re._sign = -1;
-        _swap(cloneThis._myVal, cloneIn._myVal);
+    int sign = 1;
+    if (*this < bigInt) {
+        _swap(left, right);
+        sign = -1;
     }
-
-    reverse(cloneIn._myVal);
-    reverse(cloneThis._myVal);
-
-    int i = 0, borrow = 0, diff = 0;
-    while (i < cloneIn._myVal.length()) {
-        diff = (int)cloneThis._myVal[i]- borrow - (int)cloneIn._myVal[i];
-        if (diff < 0) {
-            diff += 10;
-            borrow = 1;
-        }
-        else 
-            borrow = 0;
-        i++;
-        re._myVal += to_string(diff);
-    }
-    
-    while (i < cloneThis._myVal.length()) {
-        diff = (int)cloneThis._myVal[i++] - 48 - borrow;
-        if (diff < 0) {
-            diff += 10;
-            borrow = 1;
-        }
-        else
-            borrow = 0;
-        re._myVal += to_string(diff);
-    }
-
-    reverse(re._myVal);
-    removeAllZero(re._myVal);
-    return re.toString();
+        
+    string re;
+    re = left - right;
+    if (sign == -1)
+        return "-" + re;
+    return re;
 }
 
 string BigInt::operator -(const string& bigInt) {
@@ -164,7 +213,7 @@ string BigInt::operator -(const string& bigInt) {
 }
 
 string BigInt::operator *(const BigInt& bigInt) {
-    if (*this == "0" || bigInt == "0")
+    if (this->_myVal == "0" || bigInt._myVal == "0")
         return "0";
 
     vector<BigInt*> multi;
@@ -205,27 +254,30 @@ string BigInt::operator *(const string& bigInt) {
 }
 
 string BigInt::operator /(const BigInt& bigInt) {
-    BigInt cloneThis(*this);
-    BigInt cloneIn(bigInt);   
-
-    if (cloneIn == "0")
+    if (bigInt.isZero())
         return "ERROR";
-    if (cloneThis == "0")
+    if (this->isZero())
         return "0";
-    if (cloneThis.positive() < cloneIn.positive())
+    if (_myVal < bigInt._myVal)
         return "0";
-    else if (cloneThis == cloneIn)
+    if (_myVal == bigInt._myVal)
         return "1";
+    
+    int sign = _sign * bigInt._sign;
+    string cloneThis, cloneIn, re;
+    re = "";
 
-    cloneThis._sign = cloneIn._sign = 1;
+    cloneThis = _myVal;
+    cloneIn = bigInt._myVal;  
     
     int count = 0;
     while (cloneThis >= cloneIn) {
-        string sub = cloneThis - cloneIn;
-        count++;
-        cloneThis._myVal = sub;
+        re = cloneThis - cloneIn;
+        cloneThis = re;
+        ++count;
     }
-    count *= this->_sign * bigInt._sign;
+
+    count *= sign;
     return to_string(count);
 }
 
@@ -246,28 +298,23 @@ string BigInt::operator %(const string& bigInt) {
 }
 
 
-//Arthimetic operators
-bool BigInt::operator ==(const BigInt& bigInt) const {
-    return (this->_myVal == bigInt._myVal && this->_sign == bigInt._sign);
-}
+//--------------------------------------------------------------------------|
+//|                                                                         |
+//|                           ARITHMETIC OPERATORS                          |
+//|                                                                         |
+//--------------------------------------------------------------------------|
 
-bool BigInt::operator ==(const string& bigInt) const {
-    string val = (this->_sign == -1) ? ("-" + this->_myVal) : this->_myVal;
-    return val == bigInt;
+bool BigInt::operator ==(const BigInt& bigInt) const {
+    return (this->_sign == bigInt._sign && this->_myVal == bigInt._myVal);
 }
 
 bool BigInt::operator <(const BigInt& bigInt) const {
-    if (this->_sign != bigInt._sign)
-        return this->_sign < bigInt._sign;
-
-    if (_myVal.size() != bigInt._myVal.size())
-        return (this->_sign == 1) ? this->_myVal.size() < bigInt._myVal.size() : this->_myVal.size() > bigInt._myVal.size();
-
-    for (int i = 0; i < this->_myVal.size(); i++) 
-        if (_myVal[i] != bigInt._myVal[i])
-            return (_sign == 1) ? _myVal[i] < bigInt._myVal[i] : _myVal[i] > bigInt._myVal[i];
-
-    return false;
+    if (_sign * bigInt._sign < 0) {
+        return _sign < 0;
+    }
+    if (_sign < 0)
+        return _myVal > bigInt._myVal;
+    return _myVal < bigInt._myVal;
 }
 
 bool BigInt::operator <=(const BigInt& bigInt) const {
@@ -282,19 +329,15 @@ bool BigInt::operator >=(const BigInt& bigInt) const {
     return !(*this < bigInt);
 }
 
-
-BigInt::~BigInt() {
-    this->_myVal = "0";
-}
-
-BigInt& BigInt::toFixed(const size_t& digits) {
-    string fix(digits, '0');
-    this->_myVal = fix + this->_myVal;
-    return *this;
-}
+//--------------------------------------------------------------------------|
+//|                                                                         |
+//|                                  METHODS                                |
+//|                                                                         |
+//--------------------------------------------------------------------------|
 
 BigInt BigInt::negative() {
-    BigInt x = *this;
+    BigInt x;
+    x._myVal = this->_myVal;
     x._sign *= -1;
     return x;
 }
@@ -306,10 +349,10 @@ BigInt BigInt::positive() {
     return x;
 }
 
-void BigInt::display() {
-    cout << this->_myVal << endl;
+string BigInt::toString() const {
+    return (this->_sign == 1) ? this->_myVal : ("-" + this->_myVal);
 }
 
-string BigInt::toString() {
-    return (this->_sign == -1) ? ("-" + this->_myVal) : this->_myVal;
+bool BigInt::isZero() const {
+    return (_myVal == "" || _myVal == "0");
 }

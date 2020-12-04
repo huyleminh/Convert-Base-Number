@@ -3,51 +3,32 @@
 #include "machine/ConvertMachine.h"
 using namespace std;
 
-int main(int args, char** argv) {
-    // if (args != 3) {
-    //     cout << "Unvalid input" << endl;
-    //     return -1;
-    // }
 
-    // string input = argv[1];
-    // bool checkInput = InputHandler::getHandler()->validateNumber(input);
-
-    // if (checkInput == false) {
-    //     cout << "Unregconized a number" << endl;
-    //     return -1;
-    // }
-
-    // string base = argv[2];
-    // if (base == "d") {
-    //     cout << "Input decimal" << endl;
-    // }    
-    // else if (base == "h") {
-    //     cout << "Input hexadecimal" << endl;
-    // }
-    // else if (base == "b") {
-    //     cout << "Input binary" << endl;
-    // }
-    // else 
-    //     cout << "Unregconized available base converter." << endl;
-    /*string number = argv[1];
-    string number1 = argv[2];*/
-
+int main() {
+    //*Main program
+    InputHandler* handler = InputHandler::getHandler();
     string number;
-    string from;
-    string to;
+    string base, fixed;
+    bool check;
 
-    while (1) {
-        getline(cin, number, '\n');
-        if (number == "end")
-            break;
-        getline(cin, from, '\n');
-        getline(cin, to, '\n');
-        
+    while (true) {
+        while (true) {
+            check = handler->inputNumber(number, base, fixed);
+            if (!check)
+                cout << "SYNTAX ERROR!" << endl;
+            else
+                break;
+        }
+
         ConvertMachine* machine = ConvertMachine::createConvertMachine();
-        cout << machine->convertNumber(number, stoi(from), stoi(to)) << endl;
-        //cout << "a / b = " << BigInt(number) / BigInt(from);
-        //break;
+
+        cout << "Convert number at standard: " << endl;
+        machine->convertStandardNumber(number, stoi(base));
+
+        cout << "Convert number at special:" << endl;
+        machine->convertSpecialNumber(number, stoi(base), stoi(fixed));
+        
     }
-    
+
     return 0;
 }
